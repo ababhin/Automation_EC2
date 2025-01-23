@@ -5,7 +5,7 @@ pipeline {
         INVENTORY_FILE = "inventory.ini"    // Inventory file for Ansible
         PLAYBOOK = "playbook.yml"           // Ansible playbook file
         PEM_FILE = "/path/to/your-key.pem"  // Path to your .pem private key
-        GIT_REPO = "https://github.com/your-username/your-repo.git"  // GitHub repo URL
+        GIT_REPO = "https://github.com/ababhin/Automation_EC2.git"  // GitHub repo URL
     }
     stages {
         stage('Clone Repository') {

@@ -1,0 +1,68 @@
+---
+- name: Hadoop Cluster Setup
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Install Java on Amazon Linux
+      shell: |
+        amazon-linux-extras enable corretto11
+        yum install -y java-11-amazon-corretto
+      when: ansible_distribution == "Amazon"
+
+    - name: Download Hadoop
+      get_url:
+        url: https://downloads.apache.org/hadoop/common/hadoop-3.3.6/hadoop-3.3.6.tar.gz
+        dest: /tmp/hadoop.tar.gz
+
+    - name: Extract Hadoop
+      unarchive:
+        src: /tmp/hadoop.tar.gz
+        dest: /usr/local/
+        remote_src: yes
+
+    - name: Create Hadoop symlink
+      file:
+        src: /usr/local/hadoop-3.3.6
+        dest: /usr/local/hadoop
+        state: link
+
+    - name: Configure Hadoop environment variables
+      lineinfile:
+        path: /etc/profile.d/hadoop.sh
+        create: yes
+        line: "{{ item }}"
+      with_items:
+        - 'export HADOOP_HOME=/usr/local/hadoop'
+        - 'export PATH=$PATH:$HADOOP_HOME/bin:$HADOOP_HOME/sbin'
+        - 'export JAVA_HOME=/usr/lib/jvm/java-11-amazon-corretto'
+
+    - name: Source Hadoop environment variables
+      shell: source /etc/profile.d/hadoop.sh
+      args:
+        executable: /bin/bash
+
+    - name: Copy Hadoop Configuration Files
+      template:
+        src: templates/{{ item }}
+        dest: /usr/local/hadoop/etc/hadoop/{{ item }}
+      with_items:
+        - core-site.xml
+        - hdfs-site.xml
+        - yarn-site.xml
+        - mapred-site.xml
+
+    - name: Format HDFS (NameNode only)
+      shell: hdfs namenode -format
+      when: "'namenode' in group_names"
+
+    - name: Start Hadoop Services (NameNode)
+      shell: |
+        start-dfs.sh
+        start-yarn.sh
+      when: "'namenode' in group_names"
+
+    - name: Start DataNode Services
+      shell: |
+        start-dfs.sh
+      when: "'datanodes' in group_names"

@@ -1,11 +1,11 @@
 pipeline {
     agent any
     environment {
-        ANSIBLE_HOST_KEY_CHECKING = "False"    // Disable SSH key host checking for simplicity
+        ANSIBLE_HOST_KEY_CHECKING = "False"    // Disable SSH key host checking
         INVENTORY_FILE = "inventory.ini"      // Inventory file for Ansible
         PLAYBOOK = "playbook.yml"             // Ansible playbook file
-        PEM_FILE = "/path/to/your-key.pem"    // Path to your .pem private key
-        GIT_REPO = "https://github.com/ababhin/Automation_EC2.git" // GitHub repo URL
+        PEM_FILE = "/home/abhinav/Documents/BigData_Project/Pipeline/Automation_EC2/Keys/Server1.pem"    // Path to your .pem private key
+        GIT_REPO = "https://github.com/your-repo/hadoop-ansible.git" // GitHub repo URL with Ansible playbook and templates
     }
     stages {
         stage('Clone Repository') {
@@ -34,18 +34,19 @@ pipeline {
                 '''
             }
         }
-        stage('Verify Installation') {
+        stage('Verify Hadoop Installation') {
             steps {
-                echo 'Verifying Installation...'
+                echo 'Verifying Hadoop Installation...'
                 sh '''
-                ssh -o StrictHostKeyChecking=no -i ${PEM_FILE} ec2-user@<EC2-PUBLIC-IP> "systemctl status amazon-cloudwatch-agent"
+                ssh -o StrictHostKeyChecking=no -i ${PEM_FILE} ec2-user@35.180.46.154 \
+                    "jps && hdfs dfsadmin -report"
                 '''
             }
         }
     }
     post {
         success {
-            echo 'Pipeline completed successfully!'
+            echo 'Pipeline completed successfully! Hadoop is set up.'
         }
         failure {
             echo 'Pipeline failed. Please check the logs.'

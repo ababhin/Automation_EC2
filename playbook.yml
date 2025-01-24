@@ -8,6 +8,7 @@
     hadoop_download_url: "https://downloads.apache.org/hadoop/common/hadoop-{{ hadoop_version }}/hadoop-{{ hadoop_version }}.tar.gz"
     hadoop_install_dir: "/usr/local"
     hadoop_tmp_dir: "/var/tmp"
+    hadoop_user: "hadoop"
 
   tasks:
     - name: Install Java on Amazon Linux
@@ -50,6 +51,11 @@
         - 'export HADOOP_HOME={{ hadoop_install_dir }}/hadoop'
         - 'export PATH=$PATH:$HADOOP_HOME/bin:$HADOOP_HOME/sbin'
         - 'export JAVA_HOME=/usr/lib/jvm/java-11-amazon-corretto'
+        - 'export HDFS_NAMENODE_USER={{ hadoop_user }}'
+        - 'export HDFS_DATANODE_USER={{ hadoop_user }}'
+        - 'export HDFS_SECONDARYNAMENODE_USER={{ hadoop_user }}'
+        - 'export YARN_RESOURCEMANAGER_USER={{ hadoop_user }}'
+        - 'export YARN_NODEMANAGER_USER={{ hadoop_user }}'
 
     - name: Source Hadoop environment variables
       shell: |
@@ -70,23 +76,25 @@
 
     - name: Create Hadoop user
       user:
-        name: hadoop
+        name: "{{ hadoop_user }}"
         shell: /bin/bash
         create_home: yes
-        home: /home/hadoop
+        home: "/home/{{ hadoop_user }}"
 
     - name: Create Hadoop directories for HDFS
       file:
         path: "{{ item }}"
         state: directory
-        owner: hadoop
-        group: hadoop
+        owner: "{{ hadoop_user }}"
+        group: "{{ hadoop_user }}"
         mode: '0755'
       with_items:
         - /usr/local/hadoop_data/hdfs/namenode
         - /usr/local/hadoop_data/hdfs/datanode
 
     - name: Format HDFS (NameNode only)
+      become: true
+      become_user: "{{ hadoop_user }}"
       shell: |
         source /etc/profile.d/hadoop.sh
         hdfs namenode -format
@@ -95,6 +103,8 @@
       when: "'namenode' in group_names"
 
     - name: Start Hadoop Services (NameNode)
+      become: true
+      become_user: "{{ hadoop_user }}"
       shell: |
         source /etc/profile.d/hadoop.sh
         start-dfs.sh
@@ -104,6 +114,8 @@
       when: "'namenode' in group_names"
 
     - name: Start DataNode Services
+      become: true
+      become_user: "{{ hadoop_user }}"
       shell: |
         source /etc/profile.d/hadoop.sh
         start-dfs.sh

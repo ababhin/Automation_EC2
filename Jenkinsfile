@@ -5,7 +5,7 @@ pipeline {
         INVENTORY_FILE = "inventory.ini"      // Inventory file for Ansible
         PLAYBOOK = "playbook.yml"             // Ansible playbook file
         PEM_FILE = "/home/abhinav/Documents/BigData_Project/Pipeline/Automation_EC2/Keys/Server1.pem"    // Path to your .pem private key
-        GIT_REPO = "https://github.com/your-repo/hadoop-ansible.git" // GitHub repo URL with Ansible playbook and templates
+        GIT_REPO = "https://github.com/ababhin/Automation_EC2.git" // GitHub repo URL with Ansible playbook and templates
     }
     stages {
         stage('Clone Repository') {

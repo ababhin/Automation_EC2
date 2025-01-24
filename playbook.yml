@@ -66,6 +66,13 @@
         - yarn-site.xml
         - mapred-site.xml
 
+    - name: Create Hadoop user
+      user:
+        name: hadoop
+        shell: /bin/bash
+        create_home: yes
+        home: /home/hadoop
+
     - name: Create Hadoop directories for HDFS
       file:
         path: "{{ item }}"

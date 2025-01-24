@@ -9,6 +9,18 @@
     hadoop_install_dir: "/usr/local"
     hadoop_tmp_dir: "/var/tmp"
     hadoop_user: "hadoop"
+    hadoop_data_dirs:
+      - "{{ hadoop_install_dir }}/hadoop_data/hdfs/namenode"
+      - "{{ hadoop_install_dir }}/hadoop_data/hdfs/datanode"
+    hadoop_env_vars:
+      - 'export HADOOP_HOME={{ hadoop_install_dir }}/hadoop'
+      - 'export PATH=$PATH:$HADOOP_HOME/bin:$HADOOP_HOME/sbin'
+      - 'export JAVA_HOME=/usr/lib/jvm/java-11-amazon-corretto'
+      - 'export HDFS_NAMENODE_USER={{ hadoop_user }}'
+      - 'export HDFS_DATANODE_USER={{ hadoop_user }}'
+      - 'export HDFS_SECONDARYNAMENODE_USER={{ hadoop_user }}'
+      - 'export YARN_RESOURCEMANAGER_USER={{ hadoop_user }}'
+      - 'export YARN_NODEMANAGER_USER={{ hadoop_user }}'
 
   tasks:
     - name: Install Java on Amazon Linux
@@ -23,7 +35,7 @@
         state: directory
         owner: root
         group: root
-        mode: '0755'
+        mode: '1777'
 
     - name: Download Hadoop
       get_url:
@@ -33,7 +45,7 @@
     - name: Extract Hadoop
       unarchive:
         src: "{{ hadoop_tmp_dir }}/hadoop.tar.gz"
-        dest: "{{ hadoop_install_dir }}/"
+        dest: "{{ hadoop_install_dir }}"
         remote_src: yes
 
     - name: Create Hadoop symlink
@@ -47,15 +59,7 @@
         path: /etc/profile.d/hadoop.sh
         create: yes
         line: "{{ item }}"
-      with_items:
-        - 'export HADOOP_HOME={{ hadoop_install_dir }}/hadoop'
-        - 'export PATH=$PATH:$HADOOP_HOME/bin:$HADOOP_HOME/sbin'
-        - 'export JAVA_HOME=/usr/lib/jvm/java-11-amazon-corretto'
-        - 'export HDFS_NAMENODE_USER={{ hadoop_user }}'
-        - 'export HDFS_DATANODE_USER={{ hadoop_user }}'
-        - 'export HDFS_SECONDARYNAMENODE_USER={{ hadoop_user }}'
-        - 'export YARN_RESOURCEMANAGER_USER={{ hadoop_user }}'
-        - 'export YARN_NODEMANAGER_USER={{ hadoop_user }}'
+      with_items: "{{ hadoop_env_vars }}"
 
     - name: Source Hadoop environment variables
       shell: |
@@ -88,9 +92,7 @@
         owner: "{{ hadoop_user }}"
         group: "{{ hadoop_user }}"
         mode: '0755'
-      with_items:
-        - /usr/local/hadoop_data/hdfs/namenode
-        - /usr/local/hadoop_data/hdfs/datanode
+      with_items: "{{ hadoop_data_dirs }}"
 
     - name: Format HDFS (NameNode only)
       become: true

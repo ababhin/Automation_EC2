@@ -94,6 +94,14 @@
         mode: '0755'
       with_items: "{{ hadoop_data_dirs }}"
 
+    - name: Ensure Hadoop logs directory exists
+      file:
+        path: "{{ hadoop_install_dir }}/hadoop/logs"
+        state: directory
+        owner: "{{ hadoop_user }}"
+        group: "{{ hadoop_user }}"
+        mode: '0755'
+
     - name: Format HDFS (NameNode only)
       become: true
       become_user: "{{ hadoop_user }}"

@@ -107,10 +107,11 @@
       become_user: "{{ hadoop_user }}"
       shell: |
         source /etc/profile.d/hadoop.sh
-        hdfs namenode -format
+        echo "Y" | hdfs namenode -format
       args:
         executable: /bin/bash
       when: "'namenode' in group_names"
+
 
     - name: Start Hadoop Services (NameNode)
       become: true

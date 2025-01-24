@@ -35,6 +35,7 @@ pipeline {
                 }
             }
         }
+
         stage('Verify Hadoop Installation') {
             steps {
                 echo 'Verifying Hadoop Installation...'

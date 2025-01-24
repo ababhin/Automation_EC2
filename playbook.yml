@@ -52,7 +52,9 @@
         - 'export JAVA_HOME=/usr/lib/jvm/java-11-amazon-corretto'
 
     - name: Source Hadoop environment variables
-      shell: source /etc/profile.d/hadoop.sh
+      shell: |
+        source /etc/profile.d/hadoop.sh
+        echo $PATH
       args:
         executable: /bin/bash
 
@@ -83,21 +85,30 @@
       with_items:
         - /usr/local/hadoop_data/hdfs/namenode
         - /usr/local/hadoop_data/hdfs/datanode
-      when: "'namenode' in group_names or 'datanodes' in group_names"
 
     - name: Format HDFS (NameNode only)
-      shell: hdfs namenode -format
+      shell: |
+        source /etc/profile.d/hadoop.sh
+        hdfs namenode -format
+      args:
+        executable: /bin/bash
       when: "'namenode' in group_names"
 
     - name: Start Hadoop Services (NameNode)
       shell: |
+        source /etc/profile.d/hadoop.sh
         start-dfs.sh
         start-yarn.sh
+      args:
+        executable: /bin/bash
       when: "'namenode' in group_names"
 
     - name: Start DataNode Services
       shell: |
+        source /etc/profile.d/hadoop.sh
         start-dfs.sh
+      args:
+        executable: /bin/bash
       when: "'datanodes' in group_names"
 
     - name: Clean up temporary files

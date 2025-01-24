@@ -3,6 +3,12 @@
   hosts: all
   become: true
 
+  vars:
+    hadoop_version: "3.3.6"
+    hadoop_download_url: "https://downloads.apache.org/hadoop/common/hadoop-{{ hadoop_version }}/hadoop-{{ hadoop_version }}.tar.gz"
+    hadoop_install_dir: "/usr/local"
+    hadoop_tmp_dir: "/var/tmp"
+
   tasks:
     - name: Install Java on Amazon Linux
       shell: |
@@ -10,21 +16,29 @@
         yum install -y java-11-amazon-corretto
       when: ansible_distribution == "Amazon"
 
+    - name: Ensure Hadoop temp directory exists
+      file:
+        path: "{{ hadoop_tmp_dir }}"
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
     - name: Download Hadoop
       get_url:
-        url: https://downloads.apache.org/hadoop/common/hadoop-3.3.6/hadoop-3.3.6.tar.gz
-        dest: /tmp/hadoop.tar.gz
+        url: "{{ hadoop_download_url }}"
+        dest: "{{ hadoop_tmp_dir }}/hadoop.tar.gz"
 
     - name: Extract Hadoop
       unarchive:
-        src: /tmp/hadoop.tar.gz
-        dest: /usr/local/
+        src: "{{ hadoop_tmp_dir }}/hadoop.tar.gz"
+        dest: "{{ hadoop_install_dir }}/"
         remote_src: yes
 
     - name: Create Hadoop symlink
       file:
-        src: /usr/local/hadoop-3.3.6
-        dest: /usr/local/hadoop
+        src: "{{ hadoop_install_dir }}/hadoop-{{ hadoop_version }}"
+        dest: "{{ hadoop_install_dir }}/hadoop"
         state: link
 
     - name: Configure Hadoop environment variables
@@ -33,7 +47,7 @@
         create: yes
         line: "{{ item }}"
       with_items:
-        - 'export HADOOP_HOME=/usr/local/hadoop'
+        - 'export HADOOP_HOME={{ hadoop_install_dir }}/hadoop'
         - 'export PATH=$PATH:$HADOOP_HOME/bin:$HADOOP_HOME/sbin'
         - 'export JAVA_HOME=/usr/lib/jvm/java-11-amazon-corretto'
 
@@ -45,12 +59,24 @@
     - name: Copy Hadoop Configuration Files
       template:
         src: templates/{{ item }}
-        dest: /usr/local/hadoop/etc/hadoop/{{ item }}
+        dest: "{{ hadoop_install_dir }}/hadoop/etc/hadoop/{{ item }}"
       with_items:
         - core-site.xml
         - hdfs-site.xml
         - yarn-site.xml
         - mapred-site.xml
+
+    - name: Create Hadoop directories for HDFS
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: hadoop
+        group: hadoop
+        mode: '0755'
+      with_items:
+        - /usr/local/hadoop_data/hdfs/namenode
+        - /usr/local/hadoop_data/hdfs/datanode
+      when: "'namenode' in group_names or 'datanodes' in group_names"
 
     - name: Format HDFS (NameNode only)
       shell: hdfs namenode -format
@@ -66,3 +92,8 @@
       shell: |
         start-dfs.sh
       when: "'datanodes' in group_names"
+
+    - name: Clean up temporary files
+      file:
+        path: "{{ hadoop_tmp_dir }}/hadoop.tar.gz"
+        state: absent

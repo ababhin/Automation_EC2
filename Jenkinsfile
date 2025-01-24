@@ -1,10 +1,11 @@
 pipeline {
     agent any
     environment {
-        ANSIBLE_HOST_KEY_CHECKING = "False"
-        INVENTORY_FILE = "inventory.ini"
-        PLAYBOOK = "playbook.yml"
-        GIT_REPO = "https://github.com/ababhin/Automation_EC2.git"
+        ANSIBLE_HOST_KEY_CHECKING = "False"    // Disable SSH key host checking
+        INVENTORY_FILE = "inventory.ini"      // Inventory file for Ansible
+        PLAYBOOK = "playbook.yml"             // Ansible playbook file
+        PEM_FILE = "/var/lib/jenkins/.ssh/Server1.pem"    // Updated path to your .pem private key
+        GIT_REPO = "https://github.com/ababhin/Automation_EC2.git" // GitHub repo URL with Ansible playbook and templates
     }
     stages {
         stage('Clone Repository') {
@@ -28,37 +29,30 @@ pipeline {
         stage('Run Ansible Playbook') {
             steps {
                 echo 'Running Ansible Playbook...'
-                withCredentials([sshUserPrivateKey(credentialsId: 'hadoop-key', keyFileVariable: 'PEM_FILE')]) {
-                    sh '''
-                    ansible-playbook -i ${INVENTORY_FILE} ${PLAYBOOK} --private-key ${PEM_FILE} -vvvv
-                    '''
-                }
+                sh '''
+                ansible-playbook -i ${INVENTORY_FILE} ${PLAYBOOK} --private-key ${PEM_FILE}
+                '''
             }
         }
-
         stage('Verify Hadoop Installation') {
             steps {
                 echo 'Verifying Hadoop Installation...'
-                withCredentials([sshUserPrivateKey(credentialsId: 'hadoop-key', keyFileVariable: 'PEM_FILE')]) {
-                    sh '''
-                    ssh -o StrictHostKeyChecking=no -i ${PEM_FILE} ec2-user@35.180.46.154 \
-                        "jps && hdfs dfsadmin -report" || echo 'Verification failed!'
-                    '''
-                }
+                sh '''
+                ssh -o StrictHostKeyChecking=no -i ${PEM_FILE} ec2-user@35.180.46.154 \
+                    "jps && hdfs dfsadmin -report"
+                '''
             }
         }
     }
     post {
         success {
             echo 'Pipeline completed successfully! Hadoop is set up.'
-            slackSend(channel: '#build-notifications', message: 'Pipeline completed successfully! Hadoop is set up.')
         }
         failure {
             echo 'Pipeline failed. Please check the logs.'
-            slackSend(channel: '#build-notifications', message: 'Pipeline failed. Please check the logs.')
         }
         always {
-            cleanWs()
+            cleanWs() // Clean up the workspace after the build
         }
     }
 }
